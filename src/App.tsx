@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import {useEffect, useMemo, useRef, useState} from 'react'
 
 const BUTTON_LABELS = [
   'A',
@@ -134,38 +134,60 @@ function App() {
       return
     }
 
-    const target = activeGamepad as Gamepad & {
-      vibrationActuator?: {
-        playEffect?: (type: string, options: Record<string, number>) => Promise<unknown>
-        pulse?: (value: number, duration: number) => Promise<unknown>
-      }
-      hapticActuators?: Array<{
-        pulse?: (value: number, duration: number) => Promise<unknown>
-      }>
-    }
+    const target = activeGamepad as any
 
-    const actuator = target.vibrationActuator ?? target.hapticActuators?.[0]
+    const actuator = target.vibrationActuator
+    const hapticActuator = target.hapticActuators?.[0]
 
-    if (!actuator) {
+    if (!actuator && !hapticActuator) {
       setVibrationMessage('No vibration actuator detected on this controller/browser.')
       return
     }
 
     try {
       setVibrationMessage(`Running ${duration}ms vibration test...`)
-      if (actuator.playEffect) {
+      if (actuator?.playEffect) {
         await actuator.playEffect('dual-rumble', {
           duration,
           startDelay: 0,
           weakMagnitude,
           strongMagnitude,
         })
-      } else if (actuator.pulse) {
+      } else if (actuator?.pulse) {
         await actuator.pulse(Math.max(weakMagnitude, strongMagnitude), duration)
+      } else if (hapticActuator?.pulse) {
+        await hapticActuator.pulse(Math.max(weakMagnitude, strongMagnitude), duration)
       }
       setVibrationMessage('Vibration complete.')
     } catch {
       setVibrationMessage('Vibration failed. Browser may block haptics.')
+    }
+  }
+
+  const runTriggerVibration = async (leftTrigger: number, rightTrigger: number, duration = 450) => {
+    if (!activeGamepad) {
+      setVibrationMessage('Connect a controller first.')
+      return
+    }
+
+    const actuator = (activeGamepad as any).vibrationActuator
+
+    if (!actuator?.playEffect) {
+      setVibrationMessage('Trigger rumble not supported on this controller/browser.')
+      return
+    }
+
+    try {
+      setVibrationMessage(`Running ${duration}ms trigger rumble test...`)
+      await actuator.playEffect('trigger-rumble', {
+        duration,
+        startDelay: 0,
+        leftTrigger,
+        rightTrigger,
+      })
+      setVibrationMessage('Trigger rumble complete.')
+    } catch {
+      setVibrationMessage('Trigger rumble failed.')
     }
   }
 
@@ -341,7 +363,7 @@ function App() {
         <section className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
           <h2 className="mb-3 text-lg font-semibold text-white">Vibration and haptic tests</h2>
           <p className="mb-4 text-sm text-slate-300">{vibrationMessage}</p>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <button
               type="button"
               className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 hover:bg-slate-800"
@@ -357,6 +379,14 @@ function App() {
               disabled={vibrationRunning}
             >
               Strong motor focus
+            </button>
+            <button
+                type="button"
+                className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 hover:bg-slate-800"
+                onClick={() => runTriggerVibration(1, 1)}
+                disabled={vibrationRunning}
+            >
+              Trigger rumble
             </button>
             <button
               type="button"
