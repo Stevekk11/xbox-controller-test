@@ -29,9 +29,7 @@ type ButtonSnapshot = {
   tested: boolean
 }
 
-type Sleep = (ms: number) => Promise<void>
-
-const sleep: Sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
 
 function App() {
   const [pads, setPads] = useState<Gamepad[]>([])
@@ -57,7 +55,6 @@ function App() {
     const getPads = () =>
       (navigator.getGamepads?.() ?? [])
         .filter((pad): pad is Gamepad => Boolean(pad && pad.connected))
-        .map((pad) => pad)
 
     const tick = () => {
       const connected = getPads()
